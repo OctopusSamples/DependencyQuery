@@ -98,6 +98,18 @@ def get_release_id(space_id, environment_id, project_id):
 
     return release_id, deployment_process_id
 
+def get_build_urls(space_id, release_id):
+    url = octopus_url + "/api/" + space_id + "/releases/" + release_id
+    response = requests.get(url, headers=headers)
+    json = response.json()
+    sys.stdout.write("Response JSON: " + str(json) + "\n")
+
+    build_information_with_urls = [a for a in json["BuildInformation"] if a["BuildUrl"] != ""]
+    build_urls = list(map(lambda b: b["BuildUrl"], build_information_with_urls))
+
+    sys.stdout.write("Urls: " + str(build_urls) + "\n")
+    return build_urls
+
 def get_deployment_process(space_id, deployment_process_id):
     url = octopus_url + "/api/" + space_id + "/deploymentprocesses/" + deployment_process_id
     response = requests.get(url, headers=headers)
@@ -137,5 +149,4 @@ space_id = get_space_id(octopus_space)
 environment_id = get_environment_id(space_id, octopus_environment)
 project_id = get_project_id(space_id, octopus_project)
 release_id, deployment_process_id = get_release_id(space_id, environment_id, project_id)
-deployment_process = get_deployment_process(space_id, deployment_process_id)
-get_package_versions(space_id, release_id, deployment_process)
+urls = get_build_urls(space_id, release_id)
