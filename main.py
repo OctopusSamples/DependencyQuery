@@ -8,6 +8,7 @@ import tempfile
 from requests import get
 import zipfile
 import argparse
+import time
 
 parser = argparse.ArgumentParser(description='Scan a deployment for a dependency.')
 parser.add_argument('--octopusUrl', dest='octopus_url', action='store', help='The Octopus server URL',
@@ -196,7 +197,8 @@ def scan_dependencies():
         text_files = unzip_files(files)
         if search_files(text_files, args.search_text, project):
             found = True
-
+    # Add a small sleep to allow any error messages to be printed in the correct order
+    time.sleep(0.1)
     if found:
         sys.stdout.write("\n\nSearch text " + args.search_text + " was found in the list of dependencies.\n")
         sys.stdout.write("See the logs above for the complete text file listing the application dependencies.\n")
