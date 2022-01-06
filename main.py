@@ -11,6 +11,9 @@ import os
 import sys
 from datetime import datetime
 from functools import cmp_to_key
+import shutil
+import tempfile
+import urllib.request
 
 headers = {"X-Octopus-ApiKey": os.environ['API_KEY']}
 octopus_url = "https://tenpillars.octopus.app"
@@ -98,6 +101,7 @@ def get_release_id(space_id, environment_id, project_id):
 
     return release_id, deployment_process_id
 
+
 def get_build_urls(space_id, release_id):
     url = octopus_url + "/api/" + space_id + "/releases/" + release_id
     response = requests.get(url, headers=headers)
@@ -110,39 +114,37 @@ def get_build_urls(space_id, release_id):
     sys.stdout.write("Urls: " + str(build_urls) + "\n")
     return build_urls
 
-def get_deployment_process(space_id, deployment_process_id):
-    url = octopus_url + "/api/" + space_id + "/deploymentprocesses/" + deployment_process_id
-    response = requests.get(url, headers=headers)
-    json = response.json()
-    sys.stdout.write("Response JSON: " + str(json) + "\n")
-    return json
 
+def get_artifacts(build_urls, dependency_artifact_name):
+    for url in build_urls:
+        split_url = url.split("/")
 
-def get_package_versions(space_id, release_id, deployment_process):
-    url = octopus_url + "/api/" + space_id + "/releases/" + release_id
-    response = requests.get(url, headers=headers)
-    json = response.json()
-    sys.stdout.write("Response JSON: " + str(json) + "\n")
+        # turn https://github.com/OctopusSamples/OctoPub/actions/runs/1660462851 into
+        # https://api.github.com/repos/OctopusSamples/OctoPub/actions/runs/1660462851
+        run_api_url = url.replace("github.com", "api.github.com/repos")
+        response = requests.get(run_api_url)
+        run_json = response.json()
+        sys.stdout.write("Response JSON: " + str(run_json) + "\n")
 
-    package_details = []
+        check_suite_id = run_json["check_suite_id"]
 
-    packages = json["SelectedPackages"]
-    for package in packages:
-        step_name = package["StepName"]
-        action_name = package["ActionName"]
-        version = package["Version"]
-        package_reference_name = package["PackageReferenceName"]
+        artifacts_api_url = run_api_url + "/artifacts"
+        response = requests.get(artifacts_api_url)
+        artifact_json = response.json()
+        sys.stdout.write("Response JSON: " + str(artifact_json) + "\n")
 
-        for step in deployment_process["Steps"]:
-            if step["Name"] == step_name:
-                for action in step["Actions"]:
-                    if action["Name"] == action_name:
-                        filtered_packages = [a for a in action["Packages"] if a["Name"] == package_reference_name]
-                        if len(filtered_packages) != 0:
-                            package_details.append({filtered_packages[0]["PackageId"]: version})
+        filtered_items = [a for a in artifact_json["artifacts"] if a["name"] == dependency_artifact_name]
 
-    sys.stdout.write("Package Details: " + str(package_details) + "\n")
-    return package_details
+        for artifact in filtered_items:
+            id = artifact["id"]
+            artifact_url = split_url[0] + "//" + split_url[2] + "/" + split_url[3] + "/" + split_url[4] + "/suites/" + \
+                str(check_suite_id) + "/artifacts/" + str(id)
+            sys.stdout.write(artifact_url + "\n")
+
+            with urllib.request.urlopen(artifact_url) as response:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
+                    sys.stdout.write(tmp_file.name + "\n")
+                    shutil.copyfileobj(response, tmp_file)
 
 
 space_id = get_space_id(octopus_space)
@@ -150,3 +152,4 @@ environment_id = get_environment_id(space_id, octopus_environment)
 project_id = get_project_id(space_id, octopus_project)
 release_id, deployment_process_id = get_release_id(space_id, environment_id, project_id)
 urls = get_build_urls(space_id, release_id)
+get_artifacts(urls, "Dependencies")
