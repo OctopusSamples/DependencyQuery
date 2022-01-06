@@ -7,14 +7,31 @@ from requests.auth import HTTPBasicAuth
 import tempfile
 from requests import get
 import zipfile
+import argparse
 
-headers = {"X-Octopus-ApiKey": os.environ['API_KEY']}
-github_auth = HTTPBasicAuth(os.environ['GITHUB_USER'], os.environ['GITHUB_TOKEN'])
-octopus_url = "https://tenpillars.octopus.app"
-octopus_space = "Octopub"
-octopus_environment = "Production"
-octopus_project = "Audits Service"
-github_dependencies_artifact_name = "Dependencies"
+parser = argparse.ArgumentParser(description='Scan a deployment for a dependency.')
+parser.add_argument('--octopusUrl', dest='octopus_url', action='store', help='The Octopus server URL',
+                    required=True)
+parser.add_argument('--octopusApiKey', dest='octopus_api_key', action='store', help='The Octopus API key',
+                    required=True)
+parser.add_argument('--githubUser', dest='github_user', action='store', help='The GitHub username',
+                    required=True)
+parser.add_argument('--githubToken', dest='github_token', action='store', help='The GitHub token/password',
+                    required=True)
+parser.add_argument('--octopusSpace', dest='octopus_space', action='store', help='The Octopus space',
+                    required=True)
+parser.add_argument('--octopusProject', dest='octopus_project', action='store', help='The Octopus project',
+                    required=True)
+parser.add_argument('--octopusEnvironment', dest='octopus_environment', action='store', help='The Octopus environment',
+                    required=True)
+parser.add_argument('--githubDependencyArtifactName', default="Dependencies", dest='github_dependency_artifact',
+                    action='store',
+                    help='The name of the GitHub Action run artifact that contains the dependencies')
+
+args = parser.parse_args()
+
+headers = {"X-Octopus-ApiKey": args.octopus_api_key}
+github_auth = HTTPBasicAuth(args.github_user, args.github_token)
 
 
 def compare_dates(date1, date2):
@@ -30,13 +47,14 @@ def compare_dates(date1, date2):
 
 
 def get_space_id(space_name):
-    url = octopus_url + "/api/spaces?partialName=" + space_name + "&take=1000"
+    url = args.octopus_url + "/api/spaces?partialName=" + space_name + "&take=1000"
     response = requests.get(url, headers=headers)
     spaces_json = response.json()
 
     filtered_items = [a for a in spaces_json["Items"] if a["Name"] == space_name]
 
     if len(filtered_items) == 0:
+        sys.stderr.write("The space called " + space_name + " could not be found.\n")
         return None
 
     first_id = filtered_items[0]["Id"]
@@ -44,12 +62,16 @@ def get_space_id(space_name):
 
 
 def get_resource_id(space_id, resource_type, resource_name):
-    url = octopus_url + "/api/" + space_id + "/" + resource_type + "?partialName=" + resource_name + "&take=1000"
+    if space_id is None:
+        return None
+
+    url = args.octopus_url + "/api/" + space_id + "/" + resource_type + "?partialName=" + resource_name + "&take=1000"
     response = requests.get(url, headers=headers)
     json = response.json()
 
     filtered_items = [a for a in json["Items"] if a["Name"] == resource_name]
     if len(filtered_items) == 0:
+        sys.stderr.write("The resource called " + resource_name + " could not be found in space " + space_id + ".\n")
         return None
 
     first_id = filtered_items[0]["Id"]
@@ -57,12 +79,16 @@ def get_resource_id(space_id, resource_type, resource_name):
 
 
 def get_release_id(space_id, environment_id, project_id):
-    url = octopus_url + "/api/" + space_id + "/deployments?environments=" + environment_id + "&take=1000"
+    if space_id is None or environment_id is None or project_id is None:
+        return None
+
+    url = args.octopus_url + "/api/" + space_id + "/deployments?environments=" + environment_id + "&take=1000"
     response = requests.get(url, headers=headers)
     json = response.json()
 
     filtered_items = [a for a in json["Items"] if a["ProjectId"] == project_id]
     if len(filtered_items) == 0:
+        sys.stderr.write("The project id " + project_id + " did not have a deployment in " + space_id + ".\n")
         return None
 
     sorted_list = sorted(filtered_items, key=cmp_to_key(compare_dates), reverse=True)
@@ -72,7 +98,10 @@ def get_release_id(space_id, environment_id, project_id):
 
 
 def get_build_urls(space_id, release_id):
-    url = octopus_url + "/api/" + space_id + "/releases/" + release_id
+    if space_id is None or release_id is None:
+        return None
+
+    url = args.octopus_url + "/api/" + space_id + "/releases/" + release_id
     response = requests.get(url, headers=headers)
     json = response.json()
 
@@ -80,8 +109,8 @@ def get_build_urls(space_id, release_id):
     build_urls = list(map(lambda b: b["BuildUrl"], build_information_with_urls))
 
     if len(build_urls) == 0:
-        sys.stdout.write("No build information results contained build URLs to GitHub.\n")
-        sys.stdout.write("This script assumes GitHub Actions were used to build the packages deployed by Octopus.\n")
+        sys.stderr.write("No build information results contained build URLs to GitHub.\n")
+        sys.stderr.write("This script assumes GitHub Actions were used to build the packages deployed by Octopus.\n")
 
     return build_urls
 
@@ -96,6 +125,9 @@ def download_file(url):
 
 
 def get_artifacts(build_urls, dependency_artifact_name):
+    if build_urls is None:
+        return None
+
     files = []
 
     for url in build_urls:
@@ -118,6 +150,9 @@ def get_artifacts(build_urls, dependency_artifact_name):
 
 
 def unzip_files(zip_files):
+    if zip_files is None:
+        return None
+
     text_files = []
     for file in zip_files:
         with zipfile.ZipFile(file, 'r') as zip_ref:
@@ -134,12 +169,12 @@ def unzip_files(zip_files):
 
 
 def scan_dependencies():
-    space_id = get_space_id(octopus_space)
-    environment_id = get_resource_id(space_id, "environments", octopus_environment)
-    project_id = get_resource_id(space_id, "projects", octopus_project)
+    space_id = get_space_id(args.octopus_space)
+    environment_id = get_resource_id(space_id, "environments", args.octopus_environment)
+    project_id = get_resource_id(space_id, "projects", args.octopus_project)
     release_id = get_release_id(space_id, environment_id, project_id)
     urls = get_build_urls(space_id, release_id)
-    files = get_artifacts(urls, github_dependencies_artifact_name)
+    files = get_artifacts(urls, args.github_dependency_artifact)
     text_files = unzip_files(files)
 
 
