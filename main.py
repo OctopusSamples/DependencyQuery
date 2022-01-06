@@ -1,4 +1,3 @@
-import requests
 import os
 import sys
 from datetime import datetime
@@ -51,7 +50,7 @@ def compare_dates(date1, date2):
 
 def get_space_id(space_name):
     url = args.octopus_url + "/api/spaces?partialName=" + space_name.strip() + "&take=1000"
-    response = requests.get(url, headers=headers)
+    response = get(url, headers=headers)
     spaces_json = response.json()
 
     filtered_items = [a for a in spaces_json["Items"] if a["Name"] == space_name.strip()]
@@ -70,7 +69,7 @@ def get_resource_id(space_id, resource_type, resource_name):
 
     url = args.octopus_url + "/api/" + space_id + "/" + resource_type + "?partialName=" \
         + resource_name.strip() + "&take=1000"
-    response = requests.get(url, headers=headers)
+    response = get(url, headers=headers)
     json = response.json()
 
     filtered_items = [a for a in json["Items"] if a["Name"] == resource_name.strip()]
@@ -87,7 +86,7 @@ def get_release_id(space_id, environment_id, project_id):
         return None
 
     url = args.octopus_url + "/api/" + space_id + "/deployments?environments=" + environment_id + "&take=1000"
-    response = requests.get(url, headers=headers)
+    response = get(url, headers=headers)
     json = response.json()
 
     filtered_items = [a for a in json["Items"] if a["ProjectId"] == project_id]
@@ -106,7 +105,7 @@ def get_build_urls(space_id, release_id, project):
         return None
 
     url = args.octopus_url + "/api/" + space_id + "/releases/" + release_id
-    response = requests.get(url, headers=headers)
+    response = get(url, headers=headers)
     json = response.json()
 
     build_information_with_urls = [a for a in json["BuildInformation"] if "github.com" in a["BuildUrl"]]
