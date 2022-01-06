@@ -17,10 +17,12 @@ from requests import get
 import zipfile
 
 headers = {"X-Octopus-ApiKey": os.environ['API_KEY']}
+github_auth = HTTPBasicAuth(os.environ['GITHUB_USER'], os.environ['GITHUB_TOKEN'])
 octopus_url = "https://tenpillars.octopus.app"
 octopus_space = "Octopub"
 octopus_environment = "Production"
 octopus_project = "Products Service"
+github_dependencies_artifact_name = "Dependencies"
 
 
 def compare_dates(date1, date2):
@@ -106,7 +108,7 @@ def download_file(url):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
         sys.stdout.write(tmp_file.name + "\n")
         # get request
-        response = get(url, auth=HTTPBasicAuth(os.environ['GITHUB_USER'], os.environ['GITHUB_TOKEN']))
+        response = get(url, auth=github_auth)
         # write to file
         tmp_file.write(response.content)
         return tmp_file.name
@@ -119,7 +121,7 @@ def get_artifacts(build_urls, dependency_artifact_name):
         # turn https://github.com/OctopusSamples/OctoPub/actions/runs/1660462851 into
         # https://api.github.com/repos/OctopusSamples/OctoPub/actions/runs/1660462851/artifacts
         artifacts_api_url = url.replace("github.com", "api.github.com/repos") + "/artifacts"
-        response = get(artifacts_api_url, auth=HTTPBasicAuth(os.environ['GITHUB_USER'], os.environ['GITHUB_TOKEN']))
+        response = get(artifacts_api_url, auth=github_auth)
         artifact_json = response.json()
 
         filtered_items = [a for a in artifact_json["artifacts"] if a["name"] == dependency_artifact_name]
@@ -153,6 +155,6 @@ environment_id = get_environment_id(space_id, octopus_environment)
 project_id = get_project_id(space_id, octopus_project)
 release_id, deployment_process_id = get_release_id(space_id, environment_id, project_id)
 urls = get_build_urls(space_id, release_id)
-files = get_artifacts(urls, "Dependencies")
+files = get_artifacts(urls, github_dependencies_artifact_name)
 text_files = unzip_files(files)
 
