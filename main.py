@@ -69,7 +69,8 @@ def get_resource_id(space_id, resource_type, resource_name):
     if space_id is None:
         return None
 
-    url = args.octopus_url + "/api/" + space_id + "/" + resource_type + "?partialName=" + resource_name.strip() + "&take=1000"
+    url = args.octopus_url + "/api/" + space_id + "/" + resource_type + "?partialName=" \
+        + resource_name.strip() + "&take=1000"
     response = requests.get(url, headers=headers)
     json = response.json()
 
@@ -197,8 +198,7 @@ def scan_dependencies():
         text_files = unzip_files(files)
         if search_files(text_files, args.search_text, project):
             found = True
-    # Add a small sleep to allow any error messages to be printed in the correct order
-    time.sleep(0.1)
+
     if found:
         sys.stdout.write("\n\nSearch text " + args.search_text + " was found in the list of dependencies.\n")
         sys.stdout.write("See the logs above for the complete text file listing the application dependencies.\n")
