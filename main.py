@@ -54,7 +54,7 @@ def get_space_id(space_name):
     response = requests.get(url, headers=headers)
     spaces_json = response.json()
 
-    filtered_items = [a for a in spaces_json["Items"] if a["Name"] == space_name]
+    filtered_items = [a for a in spaces_json["Items"] if a["Name"] == space_name.strip()]
 
     if len(filtered_items) == 0:
         sys.stderr.write("The space called " + space_name + " could not be found.\n")
@@ -72,7 +72,7 @@ def get_resource_id(space_id, resource_type, resource_name):
     response = requests.get(url, headers=headers)
     json = response.json()
 
-    filtered_items = [a for a in json["Items"] if a["Name"] == resource_name]
+    filtered_items = [a for a in json["Items"] if a["Name"] == resource_name.strip()]
     if len(filtered_items) == 0:
         sys.stderr.write("The resource called " + resource_name + " could not be found in space " + space_id + ".\n")
         return None
@@ -171,32 +171,36 @@ def unzip_files(zip_files):
     return text_files
 
 
-def search_files(text_files, text):
+def search_files(text_files, text, project):
     found = False
     for file in text_files:
         if text in file:
             found = True
-            sys.stdout.write(text + " found in the following list of dependencies:\n")
+            sys.stdout.write(text + " found in the following list of dependencies for project "
+                             + project.strip() + "\n")
             sys.stdout.write(file + "\n")
-    if found:
-        sys.stdout.write("\n\nSearch text " + text + " was found in the list of dependencies.\n")
-        sys.stdout.write("See the logs above for the complete text file listing the application dependencies.\n")
-    else:
-        sys.stdout.write("\n\nSearch text " + text + " was not found in the list of dependencies.\n")
+
+    return found
 
 
 def scan_dependencies():
     space_id = get_space_id(args.octopus_space)
     environment_id = get_resource_id(space_id, "environments", args.octopus_environment)
-    text_files = []
+    found = False
     for project in args.octopus_project.split(","):
         project_id = get_resource_id(space_id, "projects", project)
         release_id = get_release_id(space_id, environment_id, project_id)
         urls = get_build_urls(space_id, release_id)
         files = get_artifacts(urls, args.github_dependency_artifact)
-        text_files = text_files + unzip_files(files)
+        text_files = unzip_files(files)
+        if search_files(text_files, args.search_text, project):
+            found = True
 
-    search_files(text_files, args.search_text)
+    if found:
+        sys.stdout.write("\n\nSearch text " + args.search_text + " was found in the list of dependencies.\n")
+        sys.stdout.write("See the logs above for the complete text file listing the application dependencies.\n")
+    else:
+        sys.stdout.write("\n\nSearch text " + args.search_text + " was not found in the list of dependencies.\n")
 
 
 scan_dependencies()
