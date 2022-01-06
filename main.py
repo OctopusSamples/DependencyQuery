@@ -14,6 +14,7 @@ from functools import cmp_to_key
 from requests.auth import HTTPBasicAuth
 import tempfile
 from requests import get
+import zipfile
 
 headers = {"X-Octopus-ApiKey": os.environ['API_KEY']}
 octopus_url = "https://tenpillars.octopus.app"
@@ -126,9 +127,11 @@ def download_file(url):
 
 
 def get_artifacts(build_urls, dependency_artifact_name):
+    files = []
+
     for url in build_urls:
         # turn https://github.com/OctopusSamples/OctoPub/actions/runs/1660462851 into
-        # https://api.github.com/repos/OctopusSamples/OctoPub/actions/runs/1660462851
+        # https://api.github.com/repos/OctopusSamples/OctoPub/actions/runs/1660462851/artifacts
         artifacts_api_url = url.replace("github.com", "api.github.com/repos") + "/artifacts"
         response = requests.get(artifacts_api_url)
         artifact_json = response.json()
@@ -139,13 +142,26 @@ def get_artifacts(build_urls, dependency_artifact_name):
         for artifact in filtered_items:
             artifact_url = artifact["archive_download_url"]
             sys.stdout.write(artifact_url + "\n")
-            download_file(artifact_url)
+            files.append(download_file(artifact_url))
+
+    return files
 
 
+def unzip_files(zip_files):
+    for file in zip_files:
+        with zipfile.ZipFile(file, 'r') as zip_ref:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                zip_ref.extractall(tmp_dir)
+                for extracted_file in os.listdir(tmp_dir):
+                    filename = os.fsdecode(extracted_file)
+                    if filename.endswith(".txt"):
+                        with open(os.path.join(tmp_dir, extracted_file)) as f:
+                            sys.stdout.write(str(f.readlines()))
 
 space_id = get_space_id(octopus_space)
 environment_id = get_environment_id(space_id, octopus_environment)
 project_id = get_project_id(space_id, octopus_project)
 release_id, deployment_process_id = get_release_id(space_id, environment_id, project_id)
 urls = get_build_urls(space_id, release_id)
-get_artifacts(urls, "Dependencies")
+files = get_artifacts(urls, "Dependencies")
+unzip_files(files)
