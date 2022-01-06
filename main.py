@@ -38,7 +38,7 @@ def compare_dates(date1, date2):
 
 
 def get_space_id(space_name):
-    url = octopus_url + "/api/spaces?partialName=" + space_name
+    url = octopus_url + "/api/spaces?partialName=" + space_name + "&take=1000"
     response = requests.get(url, headers=headers)
     spaces_json = response.json()
 
@@ -52,7 +52,7 @@ def get_space_id(space_name):
 
 
 def get_environment_id(space_id, environment_name):
-    url = octopus_url + "/api/" + space_id + "/environments?partialName=" + environment_name
+    url = octopus_url + "/api/" + space_id + "/environments?partialName=" + environment_name + "&take=1000"
     response = requests.get(url, headers=headers)
     json = response.json()
 
@@ -65,7 +65,7 @@ def get_environment_id(space_id, environment_name):
 
 
 def get_project_id(space_id, project_name):
-    url = octopus_url + "/api/" + space_id + "/projects?partialName=" + project_name
+    url = octopus_url + "/api/" + space_id + "/projects?partialName=" + project_name + "&take=1000"
     response = requests.get(url, headers=headers)
     json = response.json()
 
