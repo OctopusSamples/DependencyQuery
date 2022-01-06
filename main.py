@@ -133,7 +133,7 @@ def get_artifacts(build_urls, dependency_artifact_name):
         # turn https://github.com/OctopusSamples/OctoPub/actions/runs/1660462851 into
         # https://api.github.com/repos/OctopusSamples/OctoPub/actions/runs/1660462851/artifacts
         artifacts_api_url = url.replace("github.com", "api.github.com/repos") + "/artifacts"
-        response = requests.get(artifacts_api_url)
+        response = get(artifacts_api_url, auth=HTTPBasicAuth(os.environ['GITHUB_USER'], os.environ['GITHUB_TOKEN']))
         artifact_json = response.json()
         sys.stdout.write("Response JSON: " + str(artifact_json) + "\n")
 
@@ -156,7 +156,7 @@ def unzip_files(zip_files):
                     filename = os.fsdecode(extracted_file)
                     if filename.endswith(".txt"):
                         with open(os.path.join(tmp_dir, extracted_file)) as f:
-                            sys.stdout.write(str(f.readlines()))
+                            sys.stdout.write(f.read())
 
 space_id = get_space_id(octopus_space)
 environment_id = get_environment_id(space_id, octopus_environment)
