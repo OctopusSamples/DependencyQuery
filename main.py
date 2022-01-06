@@ -21,7 +21,7 @@ github_auth = HTTPBasicAuth(os.environ['GITHUB_USER'], os.environ['GITHUB_TOKEN'
 octopus_url = "https://tenpillars.octopus.app"
 octopus_space = "Octopub"
 octopus_environment = "Production"
-octopus_project = "Products Service"
+octopus_project = "Audits Service"
 github_dependencies_artifact_name = "Dependencies"
 
 
@@ -106,7 +106,6 @@ def get_build_urls(space_id, release_id):
 
 def download_file(url):
     with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
-        sys.stdout.write(tmp_file.name + "\n")
         # get request
         response = get(url, auth=github_auth)
         # write to file
@@ -131,7 +130,6 @@ def get_artifacts(build_urls, dependency_artifact_name):
 
         for artifact in filtered_items:
             artifact_url = artifact["archive_download_url"]
-            sys.stdout.write(artifact_url + "\n")
             files.append(download_file(artifact_url))
 
     return files
