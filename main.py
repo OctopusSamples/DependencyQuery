@@ -179,7 +179,10 @@ def search_files(text_files, text):
             sys.stdout.write(text + " found in the following list of dependencies:\n")
             sys.stdout.write(file + "\n")
     if found:
-        sys.stdout.write("\n\nSearch text was found in the list of dependencies!\n")
+        sys.stdout.write("\n\nSearch text " + text + " was found in the list of dependencies.\n")
+        sys.stdout.write("See the logs above for the complete text file listing the application dependencies.\n")
+    else:
+        sys.stdout.write("\n\nSearch text " + text + " was not found in the list of dependencies.\n")
 
 
 def scan_dependencies():
