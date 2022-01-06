@@ -43,25 +43,12 @@ def get_space_id(space_name):
     return first_id
 
 
-def get_environment_id(space_id, environment_name):
-    url = octopus_url + "/api/" + space_id + "/environments?partialName=" + environment_name + "&take=1000"
+def get_resource_id(space_id, resource_type, resource_name):
+    url = octopus_url + "/api/" + space_id + "/" + resource_type + "?partialName=" + resource_name + "&take=1000"
     response = requests.get(url, headers=headers)
     json = response.json()
 
-    filtered_items = [a for a in json["Items"] if a["Name"] == environment_name]
-    if len(filtered_items) == 0:
-        return None
-
-    first_id = filtered_items[0]["Id"]
-    return first_id
-
-
-def get_project_id(space_id, project_name):
-    url = octopus_url + "/api/" + space_id + "/projects?partialName=" + project_name + "&take=1000"
-    response = requests.get(url, headers=headers)
-    json = response.json()
-
-    filtered_items = [a for a in json["Items"] if a["Name"] == project_name]
+    filtered_items = [a for a in json["Items"] if a["Name"] == resource_name]
     if len(filtered_items) == 0:
         return None
 
@@ -148,8 +135,8 @@ def unzip_files(zip_files):
 
 def scan_dependencies():
     space_id = get_space_id(octopus_space)
-    environment_id = get_environment_id(space_id, octopus_environment)
-    project_id = get_project_id(space_id, octopus_project)
+    environment_id = get_resource_id(space_id, "environments", octopus_environment)
+    project_id = get_resource_id(space_id, "projects", octopus_project)
     release_id = get_release_id(space_id, environment_id, project_id)
     urls = get_build_urls(space_id, release_id)
     files = get_artifacts(urls, github_dependencies_artifact_name)
