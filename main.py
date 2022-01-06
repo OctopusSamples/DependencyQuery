@@ -98,8 +98,12 @@ def get_build_urls(space_id, release_id):
     response = requests.get(url, headers=headers)
     json = response.json()
 
-    build_information_with_urls = [a for a in json["BuildInformation"] if a["BuildUrl"] != ""]
+    build_information_with_urls = [a for a in json["BuildInformation"] if "github.com" in a["BuildUrl"]]
     build_urls = list(map(lambda b: b["BuildUrl"], build_information_with_urls))
+
+    if len(build_urls) == 0:
+        sys.stdout.write("No build information results contained build URLs to GitHub.\n")
+        sys.stdout.write("This script assumes GitHub Actions were used to build the packages deployed by Octopus.\n")
 
     return build_urls
 
@@ -126,7 +130,7 @@ def get_artifacts(build_urls, dependency_artifact_name):
         filtered_items = [a for a in artifact_json["artifacts"] if a["name"] == dependency_artifact_name]
 
         if len(filtered_items) == 0:
-            sys.stdout.write("No artifacts were found in the GitHub Action run called " + dependency_artifact_name)
+            sys.stdout.write("No artifacts were found in the GitHub Action run called " + dependency_artifact_name + "\n")
 
         for artifact in filtered_items:
             artifact_url = artifact["archive_download_url"]
