@@ -24,14 +24,14 @@ parser.add_argument('--octopusProject', dest='octopus_project', action='store', 
                     required=True)
 parser.add_argument('--octopusEnvironment', dest='octopus_environment', action='store', help='The Octopus environment',
                     required=True)
-parser.add_argument('--githubDependencyArtifactName', default="Dependencies", dest='github_dependency_artifact',
-                    action='store',
-                    help='The name of the GitHub Action run artifact that contains the dependencies')
 parser.add_argument('--searchText', dest='search_text', action='store',
                     help='The text to search for in the list of dependencies',
                     required=True)
+parser.add_argument('--githubDependencyArtifactName', default="Dependencies", dest='github_dependency_artifact',
+                    action='store',
+                    help='The name of the GitHub Action run artifact that contains the dependencies')
 
-args = parser.parse_args()
+args = parser.parse_known_args()
 
 headers = {"X-Octopus-ApiKey": args.octopus_api_key}
 github_auth = HTTPBasicAuth(args.github_user, args.github_token)
