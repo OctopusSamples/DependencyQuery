@@ -8,7 +8,6 @@ import tempfile
 from requests import get
 import zipfile
 import argparse
-import time
 
 parser = argparse.ArgumentParser(description='Scan a deployment for a dependency.')
 parser.add_argument('--octopusUrl', dest='octopus_url', action='store', help='The Octopus server URL',
