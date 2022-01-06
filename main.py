@@ -18,15 +18,18 @@ octopus_space = "Octopub"
 octopus_environment = "Production"
 octopus_project = "Audits Service"
 
+
 def compare_dates(date1, date2):
-    # "2022-01-04T04:23:02.941+00:00"
-    date1_parsed = datetime.strptime(date1["Created"][:-3]+date1["Created"][-2:], '%Y-%m-%dT%H:%M:%S.%f%z')
-    date2_parsed = datetime.strptime(date2["Created"][:-3]+date2["Created"][-2:], '%Y-%m-%dT%H:%M:%S.%f%z')
+    # Python 3.6 doesn't handle the colon in the timezone of a string like "2022-01-04T04:23:02.941+00:00".
+    # So we need to manually strip it out.
+    date1_parsed = datetime.strptime(date1["Created"][:-3] + date1["Created"][-2:], '%Y-%m-%dT%H:%M:%S.%f%z')
+    date2_parsed = datetime.strptime(date2["Created"][:-3] + date2["Created"][-2:], '%Y-%m-%dT%H:%M:%S.%f%z')
     if date1_parsed < date2_parsed:
         return -1
     if date1_parsed == date2_parsed:
         return 0
     return 1
+
 
 def get_space_id(space_name):
     url = octopus_url + "/api/spaces?partialName=" + space_name
@@ -58,6 +61,7 @@ def get_environment_id(space_id, environment_name):
     sys.stdout.write("Environment ID: " + first_id + "\n")
     return first_id
 
+
 def get_project_id(space_id, project_name):
     url = octopus_url + "/api/" + space_id + "/projects?partialName=" + project_name
     response = requests.get(url, headers=headers)
@@ -72,6 +76,7 @@ def get_project_id(space_id, project_name):
     sys.stdout.write("Project ID: " + first_id + "\n")
     return first_id
 
+
 def get_deployments(space_id, environment_id, project_id):
     url = octopus_url + "/api/" + space_id + "/deployments?environments=" + environment_id + "&take=1000"
     response = requests.get(url, headers=headers)
@@ -82,13 +87,12 @@ def get_deployments(space_id, environment_id, project_id):
     if len(filtered_items) == 0:
         return None
 
-    sorted_list = sorted(filtered_items, key=cmp_to_key(compare_dates))
+    sorted_list = sorted(filtered_items, key=cmp_to_key(compare_dates), reverse=True)
+    sys.stdout.write("Response First Item: " + str(sorted_list[0]) + "\n")
 
     first_id = sorted_list[0]["Id"]
     sys.stdout.write("Deployment ID: " + first_id + "\n")
     return first_id
-
-
 
 
 space_id = get_space_id(octopus_space)
