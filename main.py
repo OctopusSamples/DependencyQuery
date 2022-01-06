@@ -126,6 +126,9 @@ def get_artifacts(build_urls, dependency_artifact_name):
 
         filtered_items = [a for a in artifact_json["artifacts"] if a["name"] == dependency_artifact_name]
 
+        if len(filtered_items) == 0:
+            sys.stdout.write("No artifacts were found in the GitHub Action run called " + dependency_artifact_name)
+
         for artifact in filtered_items:
             artifact_url = artifact["archive_download_url"]
             sys.stdout.write(artifact_url + "\n")
@@ -150,11 +153,14 @@ def unzip_files(zip_files):
     return text_files
 
 
-space_id = get_space_id(octopus_space)
-environment_id = get_environment_id(space_id, octopus_environment)
-project_id = get_project_id(space_id, octopus_project)
-release_id, deployment_process_id = get_release_id(space_id, environment_id, project_id)
-urls = get_build_urls(space_id, release_id)
-files = get_artifacts(urls, github_dependencies_artifact_name)
-text_files = unzip_files(files)
+def scan_dependencies():
+    space_id = get_space_id(octopus_space)
+    environment_id = get_environment_id(space_id, octopus_environment)
+    project_id = get_project_id(space_id, octopus_project)
+    release_id, deployment_process_id = get_release_id(space_id, environment_id, project_id)
+    urls = get_build_urls(space_id, release_id)
+    files = get_artifacts(urls, github_dependencies_artifact_name)
+    text_files = unzip_files(files)
 
+
+scan_dependencies()
