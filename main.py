@@ -27,6 +27,9 @@ parser.add_argument('--octopusEnvironment', dest='octopus_environment', action='
 parser.add_argument('--githubDependencyArtifactName', default="Dependencies", dest='github_dependency_artifact',
                     action='store',
                     help='The name of the GitHub Action run artifact that contains the dependencies')
+parser.add_argument('--searchText', dest='search_text', action='store',
+                    help='The text to search for in the list of dependencies',
+                    required=True)
 
 args = parser.parse_args()
 
@@ -140,7 +143,8 @@ def get_artifacts(build_urls, dependency_artifact_name):
         filtered_items = [a for a in artifact_json["artifacts"] if a["name"] == dependency_artifact_name]
 
         if len(filtered_items) == 0:
-            sys.stdout.write("No artifacts were found in the GitHub Action run called " + dependency_artifact_name + "\n")
+            sys.stdout.write("No artifacts were found in the GitHub Action run called "
+                             + dependency_artifact_name + "\n")
 
         for artifact in filtered_items:
             artifact_url = artifact["archive_download_url"]
@@ -164,8 +168,18 @@ def unzip_files(zip_files):
                         with open(os.path.join(tmp_dir, extracted_file)) as f:
                             content = f.read()
                             text_files.append(content)
-                            sys.stdout.write(content)
     return text_files
+
+
+def search_files(text_files, text):
+    found = False
+    for file in text_files:
+        if text in file:
+            found = True
+            sys.stdout.write(text + " found in the following list of dependencies:\n")
+            sys.stdout.write(file + "\n")
+    if found:
+        sys.stdout.write("\n\nSearch text was found in the list of dependencies!\n")
 
 
 def scan_dependencies():
@@ -176,6 +190,7 @@ def scan_dependencies():
     urls = get_build_urls(space_id, release_id)
     files = get_artifacts(urls, args.github_dependency_artifact)
     text_files = unzip_files(files)
+    search_files(text_files, args.search_text)
 
 
 scan_dependencies()
