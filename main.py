@@ -188,14 +188,15 @@ def search_files(text_files, text):
 def scan_dependencies():
     space_id = get_space_id(args.octopus_space)
     environment_id = get_resource_id(space_id, "environments", args.octopus_environment)
-
+    text_files = []
     for project in args.octopus_project.split(","):
         project_id = get_resource_id(space_id, "projects", project)
         release_id = get_release_id(space_id, environment_id, project_id)
         urls = get_build_urls(space_id, release_id)
         files = get_artifacts(urls, args.github_dependency_artifact)
-        text_files = unzip_files(files)
-        search_files(text_files, args.search_text)
+        text_files = text_files + unzip_files(files)
+
+    search_files(text_files, args.search_text)
 
 
 scan_dependencies()
