@@ -1,11 +1,3 @@
-# Get deployments
-# Get release
-# Get package
-# get build info
-# get build link
-# get build artifact
-# scan build artifact
-
 import requests
 import os
 import sys
