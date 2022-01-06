@@ -77,7 +77,7 @@ def get_project_id(space_id, project_name):
     return first_id
 
 
-def get_deployments(space_id, environment_id, project_id):
+def get_release_id(space_id, environment_id, project_id):
     url = octopus_url + "/api/" + space_id + "/deployments?environments=" + environment_id + "&take=1000"
     response = requests.get(url, headers=headers)
     json = response.json()
@@ -90,12 +90,52 @@ def get_deployments(space_id, environment_id, project_id):
     sorted_list = sorted(filtered_items, key=cmp_to_key(compare_dates), reverse=True)
     sys.stdout.write("Response First Item: " + str(sorted_list[0]) + "\n")
 
-    first_id = sorted_list[0]["Id"]
-    sys.stdout.write("Deployment ID: " + first_id + "\n")
-    return first_id
+    release_id = sorted_list[0]["ReleaseId"]
+    sys.stdout.write("Release ID: " + release_id + "\n")
+
+    deployment_process_id = sorted_list[0]["DeploymentProcessId"]
+    sys.stdout.write("Deployment Process ID: " + deployment_process_id + "\n")
+
+    return release_id, deployment_process_id
+
+def get_deployment_process(space_id, deployment_process_id):
+    url = octopus_url + "/api/" + space_id + "/deploymentprocesses/" + deployment_process_id
+    response = requests.get(url, headers=headers)
+    json = response.json()
+    sys.stdout.write("Response JSON: " + str(json) + "\n")
+    return json
+
+
+def get_package_versions(space_id, release_id, deployment_process):
+    url = octopus_url + "/api/" + space_id + "/releases/" + release_id
+    response = requests.get(url, headers=headers)
+    json = response.json()
+    sys.stdout.write("Response JSON: " + str(json) + "\n")
+
+    package_details = []
+
+    packages = json["SelectedPackages"]
+    for package in packages:
+        step_name = package["StepName"]
+        action_name = package["ActionName"]
+        version = package["Version"]
+        package_reference_name = package["PackageReferenceName"]
+
+        for step in deployment_process["Steps"]:
+            if step["Name"] == step_name:
+                for action in step["Actions"]:
+                    if action["Name"] == action_name:
+                        filtered_packages = [a for a in action["Packages"] if a["Name"] == package_reference_name]
+                        if len(filtered_packages) != 0:
+                            package_details.append({filtered_packages[0]["PackageId"]: version})
+
+    sys.stdout.write("Package Details: " + str(package_details) + "\n")
+    return package_details
 
 
 space_id = get_space_id(octopus_space)
 environment_id = get_environment_id(space_id, octopus_environment)
 project_id = get_project_id(space_id, octopus_project)
-deployment_id = get_deployments(space_id, environment_id, project_id)
+release_id, deployment_process_id = get_release_id(space_id, environment_id, project_id)
+deployment_process = get_deployment_process(space_id, deployment_process_id)
+get_package_versions(space_id, release_id, deployment_process)
