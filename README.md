@@ -20,5 +20,5 @@ python3 main.py \
     --octopusSpace "#{Octopus.Space.Name}" \
     --octopusEnvironment "#{Octopus.Environment.Name}" \
     --octopusProject "Products Service, Audits Service, Octopub Frontend" \
-    --searchText "#{SearchText}"
+    --searchText "log4j"
 ```

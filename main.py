@@ -20,8 +20,8 @@ parser.add_argument('--githubToken', dest='github_token', action='store', help='
                     required=True)
 parser.add_argument('--octopusSpace', dest='octopus_space', action='store', help='The Octopus space',
                     required=True)
-parser.add_argument('--octopusProject', dest='octopus_project', action='store', help='The Octopus project',
-                    required=True)
+parser.add_argument('--octopusProject', dest='octopus_project', action='store',
+                    help='A comma separated list of Octopus projects', required=True)
 parser.add_argument('--octopusEnvironment', dest='octopus_environment', action='store', help='The Octopus environment',
                     required=True)
 parser.add_argument('--searchText', dest='search_text', action='store',
@@ -100,7 +100,7 @@ def get_release_id(space_id, environment_id, project_id):
     return release_id
 
 
-def get_build_urls(space_id, release_id):
+def get_build_urls(space_id, release_id, project):
     if space_id is None or release_id is None:
         return None
 
@@ -112,7 +112,8 @@ def get_build_urls(space_id, release_id):
     build_urls = list(map(lambda b: b["BuildUrl"], build_information_with_urls))
 
     if len(build_urls) == 0:
-        sys.stderr.write("No build information results contained build URLs to GitHub.\n")
+        sys.stderr.write("No build information results contained build URLs to GitHub for project "
+                         + project.strip() + ".\n")
         sys.stderr.write("This script assumes GitHub Actions were used to build the packages deployed by Octopus.\n")
 
     return build_urls
@@ -190,7 +191,7 @@ def scan_dependencies():
     for project in args.octopus_project.split(","):
         project_id = get_resource_id(space_id, "projects", project)
         release_id = get_release_id(space_id, environment_id, project_id)
-        urls = get_build_urls(space_id, release_id)
+        urls = get_build_urls(space_id, release_id, project)
         files = get_artifacts(urls, args.github_dependency_artifact)
         text_files = unzip_files(files)
         if search_files(text_files, args.search_text, project):
