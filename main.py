@@ -80,9 +80,8 @@ def get_release_id(space_id, environment_id, project_id):
 
     sorted_list = sorted(filtered_items, key=cmp_to_key(compare_dates), reverse=True)
     release_id = sorted_list[0]["ReleaseId"]
-    deployment_process_id = sorted_list[0]["DeploymentProcessId"]
 
-    return release_id, deployment_process_id
+    return release_id
 
 
 def get_build_urls(space_id, release_id):
@@ -151,7 +150,7 @@ def scan_dependencies():
     space_id = get_space_id(octopus_space)
     environment_id = get_environment_id(space_id, octopus_environment)
     project_id = get_project_id(space_id, octopus_project)
-    release_id, deployment_process_id = get_release_id(space_id, environment_id, project_id)
+    release_id = get_release_id(space_id, environment_id, project_id)
     urls = get_build_urls(space_id, release_id)
     files = get_artifacts(urls, github_dependencies_artifact_name)
     text_files = unzip_files(files)
