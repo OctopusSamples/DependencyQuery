@@ -31,7 +31,7 @@ parser.add_argument('--githubDependencyArtifactName', default="Dependencies", de
                     action='store',
                     help='The name of the GitHub Action run artifact that contains the dependencies')
 
-args = parser.parse_known_args()
+args = parser.parse_args()
 
 headers = {"X-Octopus-ApiKey": args.octopus_api_key}
 github_auth = HTTPBasicAuth(args.github_user, args.github_token)
