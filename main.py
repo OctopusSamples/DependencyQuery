@@ -11,9 +11,9 @@ import os
 import sys
 from datetime import datetime
 from functools import cmp_to_key
-import shutil
+from requests.auth import HTTPBasicAuth
 import tempfile
-import urllib.request
+from requests import get
 
 headers = {"X-Octopus-ApiKey": os.environ['API_KEY']}
 octopus_url = "https://tenpillars.octopus.app"
@@ -115,20 +115,21 @@ def get_build_urls(space_id, release_id):
     return build_urls
 
 
+def download_file(url):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
+        sys.stdout.write(tmp_file.name + "\n")
+        # get request
+        response = get(url, auth=HTTPBasicAuth(os.environ['GITHUB_USER'], os.environ['GITHUB_TOKEN']))
+        # write to file
+        tmp_file.write(response.content)
+        return tmp_file.name
+
+
 def get_artifacts(build_urls, dependency_artifact_name):
     for url in build_urls:
-        split_url = url.split("/")
-
         # turn https://github.com/OctopusSamples/OctoPub/actions/runs/1660462851 into
         # https://api.github.com/repos/OctopusSamples/OctoPub/actions/runs/1660462851
-        run_api_url = url.replace("github.com", "api.github.com/repos")
-        response = requests.get(run_api_url)
-        run_json = response.json()
-        sys.stdout.write("Response JSON: " + str(run_json) + "\n")
-
-        check_suite_id = run_json["check_suite_id"]
-
-        artifacts_api_url = run_api_url + "/artifacts"
+        artifacts_api_url = url.replace("github.com", "api.github.com/repos") + "/artifacts"
         response = requests.get(artifacts_api_url)
         artifact_json = response.json()
         sys.stdout.write("Response JSON: " + str(artifact_json) + "\n")
@@ -136,15 +137,10 @@ def get_artifacts(build_urls, dependency_artifact_name):
         filtered_items = [a for a in artifact_json["artifacts"] if a["name"] == dependency_artifact_name]
 
         for artifact in filtered_items:
-            id = artifact["id"]
-            artifact_url = split_url[0] + "//" + split_url[2] + "/" + split_url[3] + "/" + split_url[4] + "/suites/" + \
-                str(check_suite_id) + "/artifacts/" + str(id)
+            artifact_url = artifact["archive_download_url"]
             sys.stdout.write(artifact_url + "\n")
+            download_file(artifact_url)
 
-            with urllib.request.urlopen(artifact_url) as response:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
-                    sys.stdout.write(tmp_file.name + "\n")
-                    shutil.copyfileobj(response, tmp_file)
 
 
 space_id = get_space_id(octopus_space)
