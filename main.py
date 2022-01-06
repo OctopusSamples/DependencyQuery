@@ -50,7 +50,7 @@ def compare_dates(date1, date2):
 
 
 def get_space_id(space_name):
-    url = args.octopus_url + "/api/spaces?partialName=" + space_name + "&take=1000"
+    url = args.octopus_url + "/api/spaces?partialName=" + space_name.strip() + "&take=1000"
     response = requests.get(url, headers=headers)
     spaces_json = response.json()
 
@@ -68,7 +68,7 @@ def get_resource_id(space_id, resource_type, resource_name):
     if space_id is None:
         return None
 
-    url = args.octopus_url + "/api/" + space_id + "/" + resource_type + "?partialName=" + resource_name + "&take=1000"
+    url = args.octopus_url + "/api/" + space_id + "/" + resource_type + "?partialName=" + resource_name.strip() + "&take=1000"
     response = requests.get(url, headers=headers)
     json = response.json()
 
@@ -188,12 +188,14 @@ def search_files(text_files, text):
 def scan_dependencies():
     space_id = get_space_id(args.octopus_space)
     environment_id = get_resource_id(space_id, "environments", args.octopus_environment)
-    project_id = get_resource_id(space_id, "projects", args.octopus_project)
-    release_id = get_release_id(space_id, environment_id, project_id)
-    urls = get_build_urls(space_id, release_id)
-    files = get_artifacts(urls, args.github_dependency_artifact)
-    text_files = unzip_files(files)
-    search_files(text_files, args.search_text)
+
+    for project in args.octopus_project.split(","):
+        project_id = get_resource_id(space_id, "projects", project)
+        release_id = get_release_id(space_id, environment_id, project_id)
+        urls = get_build_urls(space_id, release_id)
+        files = get_artifacts(urls, args.github_dependency_artifact)
+        text_files = unzip_files(files)
+        search_files(text_files, args.search_text)
 
 
 scan_dependencies()
