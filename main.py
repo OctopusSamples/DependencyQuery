@@ -20,7 +20,7 @@ headers = {"X-Octopus-ApiKey": os.environ['API_KEY']}
 octopus_url = "https://tenpillars.octopus.app"
 octopus_space = "Octopub"
 octopus_environment = "Production"
-octopus_project = "Audits Service"
+octopus_project = "Products Service"
 
 
 def compare_dates(date1, date2):
@@ -39,7 +39,6 @@ def get_space_id(space_name):
     url = octopus_url + "/api/spaces?partialName=" + space_name
     response = requests.get(url, headers=headers)
     spaces_json = response.json()
-    sys.stdout.write("Response JSON: " + str(spaces_json) + "\n")
 
     filtered_items = [a for a in spaces_json["Items"] if a["Name"] == space_name]
 
@@ -47,7 +46,6 @@ def get_space_id(space_name):
         return None
 
     first_id = filtered_items[0]["Id"]
-    sys.stdout.write("Space ID: " + first_id + "\n")
     return first_id
 
 
@@ -55,14 +53,12 @@ def get_environment_id(space_id, environment_name):
     url = octopus_url + "/api/" + space_id + "/environments?partialName=" + environment_name
     response = requests.get(url, headers=headers)
     json = response.json()
-    sys.stdout.write("Response JSON: " + str(json) + "\n")
 
     filtered_items = [a for a in json["Items"] if a["Name"] == environment_name]
     if len(filtered_items) == 0:
         return None
 
     first_id = filtered_items[0]["Id"]
-    sys.stdout.write("Environment ID: " + first_id + "\n")
     return first_id
 
 
@@ -70,14 +66,12 @@ def get_project_id(space_id, project_name):
     url = octopus_url + "/api/" + space_id + "/projects?partialName=" + project_name
     response = requests.get(url, headers=headers)
     json = response.json()
-    sys.stdout.write("Response JSON: " + str(json) + "\n")
 
     filtered_items = [a for a in json["Items"] if a["Name"] == project_name]
     if len(filtered_items) == 0:
         return None
 
     first_id = filtered_items[0]["Id"]
-    sys.stdout.write("Project ID: " + first_id + "\n")
     return first_id
 
 
@@ -85,20 +79,14 @@ def get_release_id(space_id, environment_id, project_id):
     url = octopus_url + "/api/" + space_id + "/deployments?environments=" + environment_id + "&take=1000"
     response = requests.get(url, headers=headers)
     json = response.json()
-    sys.stdout.write("Response JSON: " + str(json) + "\n")
 
     filtered_items = [a for a in json["Items"] if a["ProjectId"] == project_id]
     if len(filtered_items) == 0:
         return None
 
     sorted_list = sorted(filtered_items, key=cmp_to_key(compare_dates), reverse=True)
-    sys.stdout.write("Response First Item: " + str(sorted_list[0]) + "\n")
-
     release_id = sorted_list[0]["ReleaseId"]
-    sys.stdout.write("Release ID: " + release_id + "\n")
-
     deployment_process_id = sorted_list[0]["DeploymentProcessId"]
-    sys.stdout.write("Deployment Process ID: " + deployment_process_id + "\n")
 
     return release_id, deployment_process_id
 
@@ -107,12 +95,10 @@ def get_build_urls(space_id, release_id):
     url = octopus_url + "/api/" + space_id + "/releases/" + release_id
     response = requests.get(url, headers=headers)
     json = response.json()
-    sys.stdout.write("Response JSON: " + str(json) + "\n")
 
     build_information_with_urls = [a for a in json["BuildInformation"] if a["BuildUrl"] != ""]
     build_urls = list(map(lambda b: b["BuildUrl"], build_information_with_urls))
 
-    sys.stdout.write("Urls: " + str(build_urls) + "\n")
     return build_urls
 
 
@@ -135,7 +121,6 @@ def get_artifacts(build_urls, dependency_artifact_name):
         artifacts_api_url = url.replace("github.com", "api.github.com/repos") + "/artifacts"
         response = get(artifacts_api_url, auth=HTTPBasicAuth(os.environ['GITHUB_USER'], os.environ['GITHUB_TOKEN']))
         artifact_json = response.json()
-        sys.stdout.write("Response JSON: " + str(artifact_json) + "\n")
 
         filtered_items = [a for a in artifact_json["artifacts"] if a["name"] == dependency_artifact_name]
 
@@ -148,6 +133,7 @@ def get_artifacts(build_urls, dependency_artifact_name):
 
 
 def unzip_files(zip_files):
+    text_files = []
     for file in zip_files:
         with zipfile.ZipFile(file, 'r') as zip_ref:
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -156,7 +142,11 @@ def unzip_files(zip_files):
                     filename = os.fsdecode(extracted_file)
                     if filename.endswith(".txt"):
                         with open(os.path.join(tmp_dir, extracted_file)) as f:
-                            sys.stdout.write(f.read())
+                            content = f.read()
+                            text_files.append(content)
+                            sys.stdout.write(content)
+    return text_files
+
 
 space_id = get_space_id(octopus_space)
 environment_id = get_environment_id(space_id, octopus_environment)
@@ -164,4 +154,5 @@ project_id = get_project_id(space_id, octopus_project)
 release_id, deployment_process_id = get_release_id(space_id, environment_id, project_id)
 urls = get_build_urls(space_id, release_id)
 files = get_artifacts(urls, "Dependencies")
-unzip_files(files)
+text_files = unzip_files(files)
+
