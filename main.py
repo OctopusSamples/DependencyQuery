@@ -200,7 +200,7 @@ def scan_dependencies():
         print("\n\nSearch text " + args.search_text + " was found in the list of dependencies.")
         print("See the logs above for the complete text file listing the application dependencies.")
     else:
-        print("\n\nSearch text " + args.search_text + " was not found in the list of dependencies.")
+        print("\n\nSearch text " + args.search_text + " was not found in any dependencies.")
 
 
 scan_dependencies()
