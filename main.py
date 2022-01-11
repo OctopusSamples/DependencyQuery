@@ -144,8 +144,7 @@ def get_artifacts(build_urls, dependency_artifact_name):
         filtered_items = [a for a in artifact_json["artifacts"] if a["name"] == dependency_artifact_name]
 
         if len(filtered_items) == 0:
-            sys.stdout.write("No artifacts were found in the GitHub Action run called "
-                             + dependency_artifact_name + "\n")
+            print("No artifacts were found in the GitHub Action run called " + dependency_artifact_name)
 
         for artifact in filtered_items:
             artifact_url = artifact["archive_download_url"]
@@ -177,9 +176,8 @@ def search_files(text_files, text, project):
     for file in text_files:
         if text in file:
             found = True
-            sys.stdout.write(text + " found in the following list of dependencies for project "
-                             + project.strip() + "\n")
-            sys.stdout.write(file + "\n")
+            print(text + " found in the following list of dependencies for project " + project.strip())
+            print(file)
 
     return found
 
@@ -197,11 +195,12 @@ def scan_dependencies():
         if search_files(text_files, args.search_text, project):
             found = True
 
+    print("Searching project(s) " + args.octopus_project + " for dependency " + args.search_text)
     if found:
-        sys.stdout.write("\n\nSearch text " + args.search_text + " was found in the list of dependencies.\n")
-        sys.stdout.write("See the logs above for the complete text file listing the application dependencies.\n")
+        print("\n\nSearch text " + args.search_text + " was found in the list of dependencies.")
+        print("See the logs above for the complete text file listing the application dependencies.")
     else:
-        sys.stdout.write("\n\nSearch text " + args.search_text + " was not found in the list of dependencies.\n")
+        print("\n\nSearch text " + args.search_text + " was not found in the list of dependencies.")
 
 
 scan_dependencies()
