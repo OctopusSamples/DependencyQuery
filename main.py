@@ -9,24 +9,49 @@ import zipfile
 import argparse
 
 parser = argparse.ArgumentParser(description='Scan a deployment for a dependency.')
-parser.add_argument('--octopusUrl', dest='octopus_url', action='store', help='The Octopus server URL',
+parser.add_argument('--octopusUrl', 
+                    dest='octopus_url', 
+                    action='store', 
+                    help='The Octopus server URL',
                     required=True)
-parser.add_argument('--octopusApiKey', dest='octopus_api_key', action='store', help='The Octopus API key',
+parser.add_argument('--octopusApiKey', 
+                    dest='octopus_api_key', 
+                    action='store', 
+                    help='The Octopus API key',
                     required=True)
-parser.add_argument('--githubUser', dest='github_user', action='store', help='The GitHub username',
+parser.add_argument('--githubUser', 
+                    dest='github_user', 
+                    action='store', 
+                    help='The GitHub username',
                     required=True)
-parser.add_argument('--githubToken', dest='github_token', action='store', help='The GitHub token/password',
+parser.add_argument('--githubToken', 
+                    dest='github_token', 
+                    action='store', 
+                    help='The GitHub token/password',
                     required=True)
-parser.add_argument('--octopusSpace', dest='octopus_space', action='store', help='The Octopus space',
+parser.add_argument('--octopusSpace', 
+                    dest='octopus_space', 
+                    action='store', 
+                    help='The Octopus space',
                     required=True)
-parser.add_argument('--octopusProject', dest='octopus_project', action='store',
-                    help='A comma separated list of Octopus projects', required=True)
-parser.add_argument('--octopusEnvironment', dest='octopus_environment', action='store', help='The Octopus environment',
+parser.add_argument('--octopusProject', 
+                    dest='octopus_project', 
+                    action='store',
+                    help='A comma separated list of Octopus projects', 
                     required=True)
-parser.add_argument('--searchText', dest='search_text', action='store',
+parser.add_argument('--octopusEnvironment', 
+                    dest='octopus_environment', 
+                    action='store', 
+                    help='The Octopus environment',
+                    required=True)
+parser.add_argument('--searchText', 
+                    dest='search_text', 
+                    action='store',
                     help='The text to search for in the list of dependencies',
                     required=True)
-parser.add_argument('--githubDependencyArtifactName', default="Dependencies", dest='github_dependency_artifact',
+parser.add_argument('--githubDependencyArtifactName', 
+                    default="Dependencies", 
+                    dest='github_dependency_artifact',
                     action='store',
                     help='The name of the GitHub Action run artifact that contains the dependencies')
 
